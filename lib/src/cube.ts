@@ -79,7 +79,8 @@ export class RubiksCube extends THREE.Object3D {
    */
   constructor(
     private readonly camera: THREE.Camera,
-    options: {
+    private readonly canvas: HTMLElement,
+    options?: {
       /**
        * An optional {@link Evaluator} to use when generating the
        * {@link RubiksCube}.
@@ -116,10 +117,20 @@ export class RubiksCube extends THREE.Object3D {
        * If not provided, the border will default to `0x000000`.
        */
       borderColor?: THREE.ColorRepresentation;
-    } = {},
+      /**
+       * Whether to set up the controls on the cube.
+       *
+       * If false, the controls can be set up manually using the
+       * {@link RubiksCube.rotate} and {@link RubiksCube.rotateCube} methods.
+       *
+       * Defaults to true.
+       */
+      useControls?: boolean;
+    },
   ) {
     super();
-    const { evaluator, raycaster, colors, borderColor } = options;
+    const { evaluator, raycaster, colors, borderColor, useControls } =
+      options ?? {};
     this.evaluator = evaluator ? evaluator : new Evaluator();
     this.raycaster = raycaster ? raycaster : new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
@@ -130,6 +141,7 @@ export class RubiksCube extends THREE.Object3D {
   private initCube({
     colors,
     borderColor,
+    useControls = true,
   }: {
     colors?: [
       THREE.ColorRepresentation,
@@ -140,6 +152,7 @@ export class RubiksCube extends THREE.Object3D {
       THREE.ColorRepresentation,
     ];
     borderColor?: THREE.ColorRepresentation;
+    useControls?: boolean;
   }) {
     for (let x = -1; x <= 1; x++) {
       for (let y = -1; y <= 1; y++) {
@@ -155,16 +168,16 @@ export class RubiksCube extends THREE.Object3D {
       }
     }
 
-    this.initEventListeners();
+    useControls && this.initEventListeners();
   }
 
   private createBoundingBox() {
     const size = 3;
     const geometry = new THREE.BoxGeometry(size, size, size);
     const material = new THREE.MeshBasicMaterial({
-      color: 0x000000,
-      opacity: 0,
-      transparent: true,
+      color: 0xff0000,
+      opacity: 0.5,
+      // transparent: true,
     });
     const boundingBox = new THREE.Mesh(geometry, material);
     return boundingBox;
@@ -178,14 +191,18 @@ export class RubiksCube extends THREE.Object3D {
   }
 
   private onMouseDown(event: MouseEvent) {
-    this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    const canvasBounds = this.canvas.getBoundingClientRect();
+    this.mouse.x =
+      ((event.clientX - canvasBounds.left) / canvasBounds.width) * 2 - 1;
+    this.mouse.y =
+      -((event.clientY - canvasBounds.top) / canvasBounds.height) * 2 + 1;
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const intersects = this.raycaster.intersectObjects([this.boundingBox]);
 
     if (intersects.length > 0) {
       this.initialIntersect = intersects[0];
+      console.log(this.initialIntersect);
       this.isDragging = true;
       this.dragStart.x = event.clientX;
       this.dragStart.y = event.clientY;
@@ -500,10 +517,14 @@ export class RubiksCube extends THREE.Object3D {
     axis: 'x' | 'y' | 'z',
     section: 0 | 1 | 2,
   ) {
+    const center = this.calculateGroupCenter(this.children);
+    // console.log(position, center);
+    const centerAxis = center[axis];
     const value = position[axis];
-    if (section === 0) return value < -0.5;
-    if (section === 1) return value >= -0.5 && value <= 0.5;
-    return value > 0.5;
+    if (section === 0) return value < centerAxis - 0.5;
+    if (section === 1)
+      return value >= centerAxis - 0.5 && value <= centerAxis + 0.5;
+    return value > centerAxis + 0.5;
   }
 
   /**
@@ -530,6 +551,7 @@ export class RubiksCube extends THREE.Object3D {
       onComplete?: () => void | Promise<void>;
     },
   ) {
+    if (this.isRotating) return;
     const { duration, onComplete } = options ?? {};
     const targetAngle = direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
     this.animateSectionRotation(axis, section, targetAngle, {

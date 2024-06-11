@@ -32,7 +32,7 @@ scene.background = new THREE.Color(0x0a0b0a);
 var ambientLight = new THREE.AmbientLight('white', 2);
 scene.add(ambientLight);
 
-const cube = new RubiksCube(camera, {
+const cube = new RubiksCube(camera, canvas!, {
   borderColor: 0x000000,
 });
 scene.add(cube);
