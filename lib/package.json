@@ -37,7 +37,7 @@
   "homepage": "https://github.com/timsexperiments/three-rubiks",
   "repository": {
     "type": "git",
-    "url": "https://github.com/timsexperiments/three-rubiks"
+    "url": "git+https://github.com/timsexperiments/three-rubiks.git"
   },
   "bugs": "https://github.com/timsexperiments/three-rubiks/issues",
   "files": [
