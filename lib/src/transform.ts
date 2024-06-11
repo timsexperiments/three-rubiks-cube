@@ -65,11 +65,8 @@ export function explodeAndReassemble(
   const randomPositions = generateRandomPositions(cube, { range });
 
   const animate = async (startTime: number, explode: boolean) => {
-    console.log(clock.getElapsedTime(), startTime, explode);
-    console.log(performance.now(), perfStartTime, explode);
     const elapsedTime = clock.getElapsedTime() - startTime;
     const progress = Math.min((elapsedTime / duration) * 1000, 1);
-    console.log(progress, performance.now() - perfStartTime);
     const easedProgress = easeInOutCubic(progress);
 
     cube.children.forEach((child, index) => {
