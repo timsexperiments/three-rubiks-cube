@@ -1,0 +1,55 @@
+{
+  "name": "@timsexperiments/three-rubiks-cube",
+  "version": "0.0.1",
+  "description": "API for a Three JS Rubik's Cube implemented as an THREE.Object3D.",
+  "main": "dist/esm/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.js",
+      "default": "./dist/esm/index.js"
+    },
+    "./async": {
+      "import": "./dist/esm/async.js",
+      "require": "./dist/cjs/async.js",
+      "types": "./dist/types/async.js",
+      "default": "./dist/esm/async.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.types.json & tsc -p tsconfig.cjs.json & tsc -p tsconfig.esm.json"
+  },
+  "keywords": [
+    "rubik's cube",
+    "three.js",
+    "3d",
+    "typescript",
+    "javascript",
+    "animation"
+  ],
+  "author": {
+    "name": "Tim",
+    "email": "hello@timsexperiments.foo",
+    "url": "https://timsexperiments.foo"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/timsexperiments/three-rubiks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/timsexperiments/three-rubiks"
+  },
+  "bugs": "https://github.com/timsexperiments/three-rubiks/issues",
+  "dependencies": {
+    "three": "^0.165.0",
+    "three-bvh-csg": "^0.0.16"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "@types/three": "^0.165.0",
+    "prettier": "^3.3.1",
+    "prettier-plugin-tailwindcss": "^0.6.2",
+    "typescript": "^5.4.5"
+  },
+  "type": "module"
+}
