@@ -40,6 +40,9 @@
     "url": "https://github.com/timsexperiments/three-rubiks"
   },
   "bugs": "https://github.com/timsexperiments/three-rubiks/issues",
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "three": "^0.165.0",
     "three-bvh-csg": "^0.0.16"
