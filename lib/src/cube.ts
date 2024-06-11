@@ -2,7 +2,57 @@ import * as THREE from 'three';
 import { ADDITION, Brush, Evaluator, SUBTRACTION } from 'three-bvh-csg';
 import { easeInOutCubic } from './transform';
 
-// Document this class.
+/**
+ * A {@link THREE.Object3D} representation of a 3D Rubik's Cube in Three.js.
+ *
+ * This class extends {@link THREE.Object3D} and provides a comprehensive
+ * implementation of a Rubik's Cube, including user interaction through mouse
+ * and keyboard events, rotation animations, and shuffling functionality.
+ *
+ * @example
+ * // Import necessary modules
+ * import * as THREE from 'three';
+ * import { RubiksCube } from '@timsexperiments/three-rubiks';
+ *
+ * // Create a scene, camera, and renderer
+ * const scene = new THREE.Scene();
+ * const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+ * const renderer = new THREE.WebGLRenderer();
+ * renderer.setSize(window.innerWidth, window.innerHeight);
+ * document.body.appendChild(renderer.domElement);
+ *
+ * // Create a Rubik's Cube instance and add it to the scene
+ * const rubiksCube = new RubiksCube(camera, {
+ *   colors: [
+ *     '0xff00ff', // Front face color
+ *     '0x00ffff', // Back face color
+ *     '0x00ff00', // Left face color
+ *     '0xff0000', // Right face color
+ *     '0x0000ff', // Top face color
+ *     '0xffff00', // Bottom face color
+ *   ],
+ *   borderColor: '0x000000', // Border color
+ * });
+ * scene.add(rubiksCube);
+ *
+ * // Position the camera
+ * camera.position.z = 5;
+ *
+ * // Animation loop
+ * function animate() {
+ *   requestAnimationFrame(animate);
+ *   renderer.render(scene, camera);
+ * }
+ * animate();
+ *
+ * // Rotate the entire cube along the y-axis
+ * rubiksCube.rotateCube('y', 'clockwise', {
+ *   duration: 1000,
+ *   onComplete: () => {
+ *     console.log('Rotation complete');
+ *   }
+ * });
+ */
 export class RubiksCube extends THREE.Object3D {
   private readonly evaluator: Evaluator;
   private readonly raycaster: THREE.Raycaster;
@@ -20,11 +70,38 @@ export class RubiksCube extends THREE.Object3D {
   private rotationAngle: number | null = null;
   private isRotating: boolean = false;
 
+  /**
+   * Creates a new `RubiksCube` instance.
+   *
+   * @param camera - The camera from the scene to which the `RubiksCube` is
+   *                 added.
+   * @param options - Configuration options for creating the `RubiksCube`.
+   */
   constructor(
     private readonly camera: THREE.Camera,
     options: {
+      /**
+       * An optional {@link Evaluator} to use when generating the
+       * {@link RubiksCube}.
+       *
+       * If not provided, a default {@link Evaluator} will be used.
+       */
       evaluator?: Evaluator;
+      /**
+       * An optional {@link THREE.Raycaster} for detecting mouse intersections
+       * with the {@link RubiksCube}.
+       *
+       * If not provided, a default {@link THREE.Raycaster} will be used.
+       */
       raycaster?: THREE.Raycaster;
+      /**
+       * An optional array of colors for the cube faces.
+       *
+       * If not provided, the default Rubik's Cube colors will be used.
+       *
+       * The array indices correspond to the following faces: `[front, back,
+       * left, right, top, bottom]`.
+       */
       colors?: [
         THREE.ColorRepresentation,
         THREE.ColorRepresentation,
@@ -33,6 +110,11 @@ export class RubiksCube extends THREE.Object3D {
         THREE.ColorRepresentation,
         THREE.ColorRepresentation,
       ];
+      /**
+       * An optional border color for the cube pieces.
+       *
+       * If not provided, the border will default to `0x000000`.
+       */
       borderColor?: THREE.ColorRepresentation;
     } = {},
   ) {
@@ -58,7 +140,7 @@ export class RubiksCube extends THREE.Object3D {
       THREE.ColorRepresentation,
     ];
     borderColor?: THREE.ColorRepresentation;
-  }): void {
+  }) {
     for (let x = -1; x <= 1; x++) {
       for (let y = -1; y <= 1; y++) {
         for (let z = -1; z <= 1; z++) {
@@ -95,7 +177,7 @@ export class RubiksCube extends THREE.Object3D {
     window.addEventListener('keydown', this.onKeyboardRotation.bind(this));
   }
 
-  onMouseDown(event: MouseEvent) {
+  private onMouseDown(event: MouseEvent) {
     this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -110,7 +192,7 @@ export class RubiksCube extends THREE.Object3D {
     }
   }
 
-  onMouseMove(event: MouseEvent) {
+  private onMouseMove(event: MouseEvent) {
     if (!this.isDragging || !this.initialIntersect) return;
 
     const { x: startX, y: startY } = this.dragStart;
@@ -156,7 +238,7 @@ export class RubiksCube extends THREE.Object3D {
     }
   }
 
-  onMouseUp(_event: MouseEvent) {
+  private onMouseUp(_event: MouseEvent) {
     this.isDragging = false;
 
     if (
@@ -173,7 +255,7 @@ export class RubiksCube extends THREE.Object3D {
     this.rotationAngle = null;
   }
 
-  private onKeyboardRotation(event: KeyboardEvent): void {
+  private onKeyboardRotation(event: KeyboardEvent) {
     switch (event.key) {
       case 'ArrowUp':
       case 'w':
@@ -198,27 +280,48 @@ export class RubiksCube extends THREE.Object3D {
     }
   }
 
+  /**
+   * Rotates the entire Rubik's Cube along a specified axis and direction with
+   * animation.
+   *
+   * @param axis - The axis along which to rotate the cube (`'x'` or `'y'`).
+   * @param direction - The direction to rotate the cube (`'clockwise'` or
+   *                    `'counterclockwise'`).
+   * @param options - Optional configuration for the rotation.
+   */
   public rotateCube(
     axis: 'x' | 'y',
     direction: 'clockwise' | 'counterclockwise',
-    duration: number = 500,
-  ): void {
+    options?: {
+      /**
+       * The duration of the rotation animation in milliseconds. Defaults to
+       * 500 milliseconds if not provided.
+       */
+      duration?: number;
+      /**
+       * An optional callback function to be called upon completion of the
+       * rotation.
+       */
+      onComplete?: () => void | Promise<void>;
+    },
+  ) {
     if (this.isRotating) return;
     this.isRotating = true;
     const targetAngle = direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
 
-    this.animateCubeRotation(axis, targetAngle, duration);
+    this.animateCubeRotation(axis, targetAngle, options);
   }
 
   private animateCubeRotation(
     axis: 'x' | 'y',
     targetAngle: number,
-    duration: number,
-  ): void {
+    options?: { duration?: number; onComplete?: () => void | Promise<void> },
+  ) {
+    const { duration = 500, onComplete } = options ?? {};
     const clock = new THREE.Clock();
     const startTime = clock.getElapsedTime();
 
-    const animate = () => {
+    const animate = async () => {
       const elapsedTime = clock.getElapsedTime() - startTime;
       const progress = Math.min(elapsedTime / (duration / 1000), 1);
       const easedProgress = easeInOutCubic(progress);
@@ -232,13 +335,14 @@ export class RubiksCube extends THREE.Object3D {
       } else {
         this.isRotating = false;
         this.rotationAngle = null;
+        onComplete && onComplete();
       }
     };
 
     requestAnimationFrame(animate);
   }
 
-  private rotateEntireCube(axis: 'x' | 'y' | 'z', angle: number): void {
+  private rotateEntireCube(axis: 'x' | 'y' | 'z', angle: number) {
     const pivot = new THREE.Object3D();
     const center = new THREE.Vector3();
 
@@ -256,7 +360,7 @@ export class RubiksCube extends THREE.Object3D {
     );
   }
 
-  private getSection(position: number): 0 | 1 | 2 {
+  private getSection(position: number) {
     if (position < -0.5) return 0;
     if (position > 0.5) return 2;
     return 1;
@@ -267,7 +371,7 @@ export class RubiksCube extends THREE.Object3D {
     section: 0 | 1 | 2,
     deltaX: number,
     deltaY: number,
-  ): void {
+  ) {
     if (this.rotationAngle === null) {
       throw new Error(
         'Rotation cannot be set without rotation angle being set.',
@@ -337,7 +441,7 @@ export class RubiksCube extends THREE.Object3D {
     axis: 'x' | 'y' | 'z',
     section: 0 | 1 | 2,
     angle: number,
-  ): void {
+  ) {
     const cubes = this.getSectionCubes(axis, section);
     if (cubes.length === 0) return;
 
@@ -346,10 +450,7 @@ export class RubiksCube extends THREE.Object3D {
     this.rotateCubesAroundPivot(pivot, cubes, axis, angle);
   }
 
-  private getSectionCubes(
-    axis: 'x' | 'y' | 'z',
-    section: 0 | 1 | 2,
-  ): THREE.Object3D[] {
+  private getSectionCubes(axis: 'x' | 'y' | 'z', section: 0 | 1 | 2) {
     const cubes: THREE.Object3D[] = [];
     this.children.forEach((child) => {
       if (this.isInSection(child.position, axis, section)) {
@@ -367,7 +468,7 @@ export class RubiksCube extends THREE.Object3D {
     return boundingBox.getCenter(new THREE.Vector3());
   }
 
-  private createPivot(center: THREE.Vector3): THREE.Object3D {
+  private createPivot(center: THREE.Vector3) {
     const pivot = new THREE.Object3D();
     pivot.position.copy(center);
     this.add(pivot);
@@ -379,7 +480,7 @@ export class RubiksCube extends THREE.Object3D {
     cubes: THREE.Object3D[],
     axis: 'x' | 'y' | 'z',
     angle: number,
-  ): void {
+  ) {
     const rotationAxis = new THREE.Vector3();
     rotationAxis[axis] = 1;
 
@@ -398,37 +499,55 @@ export class RubiksCube extends THREE.Object3D {
     position: THREE.Vector3,
     axis: 'x' | 'y' | 'z',
     section: 0 | 1 | 2,
-  ): boolean {
+  ) {
     const value = position[axis];
     if (section === 0) return value < -0.5;
     if (section === 1) return value >= -0.5 && value <= 0.5;
     return value > 0.5;
   }
 
+  /**
+   * Rotates a specified section of the cube along a given axis and direction
+   * with animation.
+   *
+   * @param axis - The axis along which to rotate (`'x'`, `'y'`, or `'z'`).
+   * @param section - The section to rotate (`0`, `1`, or `2`).
+   * @param direction - The direction to rotate (`'clockwise'` or
+   *                    `'counterclockwise'`).
+   * @param options - Additional options for the rotation animation.
+   */
   public rotate(
     axis: 'x' | 'y' | 'z',
     section: 0 | 1 | 2,
     direction: 'clockwise' | 'counterclockwise',
-    duration: number = 500,
-    onComplete?: () => void,
-  ): void {
+    options?: {
+      /** The duration of the rotation animation in milliseconds. */
+      duration: number;
+      /**
+       * An optional callback function to be called upon completion of the
+       * rotation.
+       */
+      onComplete?: () => void | Promise<void>;
+    },
+  ) {
+    const { duration, onComplete } = options ?? {};
     const targetAngle = direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
-    this.animateSectionRotation(
-      axis,
-      section,
-      targetAngle,
+    this.animateSectionRotation(axis, section, targetAngle, {
       duration,
       onComplete,
-    );
+    });
   }
 
   private animateSectionRotation(
     axis: 'x' | 'y' | 'z',
     section: 0 | 1 | 2,
     targetAngle: number,
-    duration: number,
-    onComplete?: () => void,
-  ): void {
+    options?: {
+      duration?: number;
+      onComplete?: () => void;
+    },
+  ) {
+    const { duration = 500, onComplete } = options ?? {};
     const clock = new THREE.Clock();
     const startTime = clock.getElapsedTime();
     const initialAngle = 0;
@@ -458,10 +577,21 @@ export class RubiksCube extends THREE.Object3D {
     requestAnimationFrame(animate);
   }
 
+  /**
+   * Shuffles the cube by performing a series of random rotations.
+   *
+   * @param turns - The number of random turns to perform.
+   * @param options - Configuration options for the shuffle.
+   */
   public shuffle(
     turns: number = 25,
     options?: {
+      /** The duration of each turn animation in milliseconds. */
       duration?: number;
+      /**
+       * An optional callback function to be called upon completion of the
+       * shuffle.
+       */
       onComplete?: () => void | Promise<void>;
     },
   ) {
@@ -470,15 +600,18 @@ export class RubiksCube extends THREE.Object3D {
     const sections = [0, 1, 2] as const;
     const directions = ['clockwise', 'counterclockwise'] as const;
 
-    const shuffleTurn = (currentTurn: number) => {
+    const shuffleTurn = async (currentTurn: number) => {
       if (currentTurn < turns) {
         const axis = axes[Math.floor(Math.random() * axes.length)];
         const section = sections[Math.floor(Math.random() * sections.length)];
         const direction =
           directions[Math.floor(Math.random() * directions.length)];
 
-        this.rotate(axis, section, direction, duration, () => {
-          shuffleTurn(currentTurn + 1);
+        this.rotate(axis, section, direction, {
+          duration,
+          onComplete: () => {
+            shuffleTurn(currentTurn + 1);
+          },
         });
       } else {
         onComplete && onComplete();
@@ -581,11 +714,11 @@ class RubiksPiece extends THREE.Mesh {
     super(block.geometry, block.material);
   }
 
-  get size(): number {
+  get size() {
     return this.options.size ?? 1;
   }
 
-  get borderSize(): number {
+  get borderSize() {
     return this.options.borderSize ?? 0.1;
   }
 }

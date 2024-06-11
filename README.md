@@ -1,81 +1,211 @@
-# Turborepo starter
+# Rubik's Cube Library for Three.js
 
-This is an official starter Turborepo.
+A comprehensive implementation of a 3D Rubik's Cube using Three.js, featuring user interaction through mouse and keyboard events, rotation animations, shuffling functionality, and explosion/reassembly animations.
 
-## Using this example
+## Table of Contents
 
-Run the following command:
+- [Installation](#installation)
+- [Usage](#usage)
+- [API](#api)
+  - [RubiksCube](#rubikscube)
+  - [Transform Functions](#transform-functions)
+    - [explodeAndReassemble](#explodeandreassemble)
+    - [explodeAndReassembleAsync](#explodeandreassembleasync)
+  - [Utility Functions](#utility-functions)
+    - [easeInOutCubic](#easeinoutcubic)
+- [Examples](#examples)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Installation
+
+Install the library via npm:
 
 ```sh
-npx create-turbo@latest
+npm install @timsexperiments/three-rubiks
 ```
 
-## What's inside?
+## Usage
 
-This Turborepo includes the following packages/apps:
+Import and use the Rubik's Cube in your Three.js scene.
 
-### Apps and Packages
+### Basic Examplexw
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+```TypeScript
+import * as THREE from 'three';
+import { RubiksCube } from '@timsexperiments/three-rubiks';
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+// Create a scene, camera, and renderer
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-### Utilities
+// Create a Rubik's Cube instance and add it to the scene
+const rubiksCube = new RubiksCube(camera, {
+  colors: [
+    '0xff00ff', // Front face color
+    '0x00ffff', // Back face color
+    '0x00ff00', // Left face color
+    '0xff0000', // Right face color
+    '0x0000ff', // Top face color
+    '0xffff00', // Bottom face color
+  ],
+  borderColor: '0x000000', // Border color
+});
+scene.add(rubiksCube);
 
-This Turborepo has some additional tools already setup for you:
+// Position the camera
+camera.position.z = 5;
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+// Animation loop
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
 
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm build
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm dev
-```
-
-### Remote Caching
-
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+// Rotate the entire cube along the y-axis
+rubiksCube.rotateCube('y', 'clockwise', {
+  duration: 1000,
+  onComplete: () => {
+    console.log('Rotation complete');
+  }
+});
 
 ```
-npx turbo link
+
+## API
+
+### RubiksCube
+
+A `THREE.Object3D` representation of a 3D Rubik's Cube.
+
+#### constructor
+
+```TypeScript
+constructor(camera: THREE.Camera, options?: {
+  evaluator?: Evaluator;
+  raycaster?: THREE.Raycaster;
+  colors?: [
+    THREE.ColorRepresentation,
+    THREE.ColorRepresentation,
+    THREE.ColorRepresentation,
+    THREE.ColorRepresentation,
+    THREE.ColorRepresentation,
+    THREE.ColorRepresentation,
+  ];
+  borderColor?: THREE.ColorRepresentation;
+})
+
 ```
 
-## Useful Links
+- cube: The RubiksCube instance to be exploded and reassembled.
+- options: Optional configuration for the explosion and reassembly.
+- duration: The duration of the explosion animation in milliseconds. Defaults to 1000 milliseconds.
+- range: The range of the explosion, determining how far the pieces will move from their original positions. Defaults to 10.
+- reassembleDelay: The delay in milliseconds before the reassembly animation starts after the explosion. Defaults to 500 milliseconds.
+- onComplete: An optional callback function to be called upon completion of the reassembly.
 
-Learn more about the power of Turborepo:
+## Transform Fuctions
 
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+#### explodeAndReassemble
+
+Animates the explosion and reassembly of the given `RubiksCube`.
+
+```TypeScript
+function explodeAndReassemble(
+  cube: RubiksCube,
+  options?: {
+    duration?: number;
+    range?: number;
+    reassembleDelay?: number;
+    onComplete?: () => void | Promise<void>;
+  }
+)
+
+```
+
+- cube: The RubiksCube instance to be exploded and reassembled.
+- options: Optional configuration for the explosion and reassembly.
+  - duration: The duration of the explosion animation in milliseconds. Defaults to 1000 milliseconds.
+  - range: The range of the explosion, determining how far the pieces will move from their original positions. Defaults to 10.
+  - reassembleDelay: The delay in milliseconds before the reassembly animation starts after the explosion. Defaults to 500 milliseconds.
+  - onComplete: An optional callback function to be called upon completion of the reassembly.
+
+```TypeScript
+ function explodeAndReassembleAsync(
+  cube: RubiksCube,
+  options?: {
+    duration?: number;
+    range?: number;
+    reassembleDelay?: number;
+    onComplete?: () => void | Promise<void>;
+  }
+): Promise<void>
+```
+
+- cube: The RubiksCube instance to be exploded and reassembled.
+- options: Optional configuration for the explosion and reassembly.
+  - duration: The duration of the explosion animation in milliseconds. Defaults to 1000 milliseconds.
+  - range: The range of the explosion, determining how far the pieces will move from their original positions. Defaults to 10.
+  - reassembleDelay: The delay in milliseconds before the reassembly animation starts after the explosion. Defaults to 500 milliseconds.
+  - onComplete: An optional callback function to be called up on completion of the reassembly.
+- returns: A promise that resolves when the reassembly is complete.
+
+## Utility Functions
+
+### easeInOutCubic
+
+Applies an ease-in-out cubic easing function to the input value.
+
+```TypeScript
+function easeInOutCubic(value: number): number
+```
+
+- value: The input value to be eased, typically in the range [0, 1].
+- returns: The eased value, also in the range [0, 1].
+
+## Examples
+
+### Explosion and Reassembly
+
+```TypeScript
+import * as THREE from 'three';
+import { RubiksCube, explodeAndReassemble } from '@timsexperiments/three-rubiks';
+
+const rubiksCube = new RubiksCube(new THREE.Camera())
+
+explodeAndReassemble(rubiksCube, {
+  duration: 1500,
+  range: 15,
+  reassembleDelay: 700,
+  onComplete: () => {
+    console.log('Cube has been reassembled');
+  },
+});
+```
+
+```TypeScript
+import * as THREE from 'three';
+import { RubiksCube, explodeAndReassemble } from '@timsexperiments/three-rubiks/async';
+
+const rubiksCube = new RubiksCube(new THREE.Camera())
+
+explodeAndReassemble(rubiksCube, {
+  duration: 1500,
+  range: 15,
+  reassembleDelay: 700,
+}).then(() => {
+  console.log('Cube has been reassembled');
+});
+```
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request on GitHub.
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
