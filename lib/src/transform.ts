@@ -50,54 +50,56 @@ export function explodeAndReassemble(
   cube: RubiksCube,
   options?: ExplodeOptions,
 ) {
-  const clock = new THREE.Clock();
-  const {
-    duration = 1000,
-    range = 10,
-    reassembleDelay = 500,
-    onComplete,
-  } = options ?? {};
-  const originalPositions: THREE.Vector3[] = [];
-  cube.children.forEach((child) => {
-    originalPositions.push(child.position.clone());
-  });
-
-  const randomPositions = generateRandomPositions(cube, { range });
-
-  const animate = async (startTime: number, explode: boolean) => {
-    const elapsedTime = clock.getElapsedTime() - startTime;
-    const progress = Math.min((elapsedTime / duration) * 1000, 1);
-    const easedProgress = easeInOutCubic(progress);
-
-    cube.children.forEach((child, index) => {
-      if (explode) {
-        child.position.lerpVectors(
-          originalPositions[index],
-          randomPositions[index],
-          easedProgress,
-        );
-      } else {
-        child.position.lerpVectors(
-          randomPositions[index],
-          originalPositions[index],
-          easedProgress,
-        );
-      }
+  cube.runTransformation(() => {
+    const clock = new THREE.Clock();
+    const {
+      duration = 1000,
+      range = 10,
+      reassembleDelay = 500,
+      onComplete,
+    } = options ?? {};
+    const originalPositions: THREE.Vector3[] = [];
+    cube.children.forEach((child) => {
+      originalPositions.push(child.position.clone());
     });
 
-    if (progress < 1) {
-      requestAnimationFrame(() => animate(startTime, explode));
-    } else if (explode) {
-      setTimeout(() => {
-        requestAnimationFrame(() => animate(clock.getElapsedTime(), false));
-      }, reassembleDelay);
-    } else {
-      onComplete && onComplete();
-    }
-  };
+    const randomPositions = generateRandomPositions(cube, { range });
 
-  const perfStartTime = performance.now();
-  requestAnimationFrame(() => animate(clock.getElapsedTime(), true));
+    const animate = async (startTime: number, explode: boolean) => {
+      const elapsedTime = clock.getElapsedTime() - startTime;
+      const progress = Math.min((elapsedTime / duration) * 1000, 1);
+      const easedProgress = easeInOutCubic(progress);
+
+      cube.children.forEach((child, index) => {
+        if (explode) {
+          child.position.lerpVectors(
+            originalPositions[index],
+            randomPositions[index],
+            easedProgress,
+          );
+        } else {
+          child.position.lerpVectors(
+            randomPositions[index],
+            originalPositions[index],
+            easedProgress,
+          );
+        }
+      });
+
+      if (progress < 1) {
+        requestAnimationFrame(() => animate(startTime, explode));
+      } else if (explode) {
+        setTimeout(() => {
+          requestAnimationFrame(() => animate(clock.getElapsedTime(), false));
+        }, reassembleDelay);
+      } else {
+        onComplete && onComplete();
+      }
+    };
+
+    const perfStartTime = performance.now();
+    requestAnimationFrame(() => animate(clock.getElapsedTime(), true));
+  });
 }
 
 /**
