@@ -19,21 +19,21 @@ A comprehensive implementation of a 3D Rubik's Cube using Three.js, featuring us
 
 ## Installation
 
-Install the library via npm:
+Install the library via npm (or your favorite node package manager):
 
 ```sh
-npm install @timsexperiments/three-rubiks
+npm install @timsexperiments/three-rubiks-cube
 ```
 
 ## Usage
 
 Import and use the Rubik's Cube in your Three.js scene.
 
-### Basic Examplexw
+### Basic Example
 
 ```TypeScript
 import * as THREE from 'three';
-import { RubiksCube } from '@timsexperiments/three-rubiks';
+import { RubiksCube } from '@timsexperiments/three-rubiks-cube';
 
 // Create a scene, camera, and renderer
 const scene = new THREE.Scene();
@@ -110,7 +110,7 @@ constructor(camera: THREE.Camera, options?: {
 
 ## Transform Fuctions
 
-#### explodeAndReassemble
+### explodeAndReassemble
 
 Animates the explosion and reassembly of the given `RubiksCube`.
 
@@ -154,26 +154,13 @@ function explodeAndReassemble(
   - onComplete: An optional callback function to be called up on completion of the reassembly.
 - returns: A promise that resolves when the reassembly is complete.
 
-## Utility Functions
+### Examples
 
-### easeInOutCubic
-
-Applies an ease-in-out cubic easing function to the input value.
-
-```TypeScript
-function easeInOutCubic(value: number): number
-```
-
-- value: The input value to be eased, typically in the range [0, 1].
-- returns: The eased value, also in the range [0, 1].
-
-## Examples
-
-### Explosion and Reassembly
+#### Explosion and Reassembly
 
 ```TypeScript
 import * as THREE from 'three';
-import { RubiksCube, explodeAndReassemble } from '@timsexperiments/three-rubiks';
+import { RubiksCube, explodeAndReassemble } from '@timsexperiments/three-rubiks-cube';
 
 const rubiksCube = new RubiksCube(new THREE.Camera())
 
@@ -189,7 +176,8 @@ explodeAndReassemble(rubiksCube, {
 
 ```TypeScript
 import * as THREE from 'three';
-import { RubiksCube, explodeAndReassemble } from '@timsexperiments/three-rubiks/async';
+import { RubiksCube } from '@timsexperiments/three-rubiks-cube/';
+import { explodeAndReassemble } from '@timsexperiments/three-rubiks-cube/async';
 
 const rubiksCube = new RubiksCube(new THREE.Camera())
 
