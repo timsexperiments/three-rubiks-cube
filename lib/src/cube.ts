@@ -202,7 +202,6 @@ export class RubiksCube extends THREE.Object3D {
 
     if (intersects.length > 0) {
       this.initialIntersect = intersects[0];
-      console.log(this.initialIntersect);
       this.isDragging = true;
       this.dragStart.x = event.clientX;
       this.dragStart.y = event.clientY;
@@ -518,7 +517,6 @@ export class RubiksCube extends THREE.Object3D {
     section: 0 | 1 | 2,
   ) {
     const center = this.calculateGroupCenter(this.children);
-    // console.log(position, center);
     const centerAxis = center[axis];
     const value = position[axis];
     if (section === 0) return value < centerAxis - 0.5;
