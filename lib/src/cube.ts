@@ -68,7 +68,7 @@ export class RubiksCube extends THREE.Object3D {
   private rotationAxis: 'x' | 'y' | 'z' | null = null;
   private rotationSection: 0 | 1 | 2 | null = null;
   private rotationAngle: number | null = null;
-  private isRotating: boolean = false;
+  private isTranforming: boolean = false;
 
   /**
    * Creates a new `RubiksCube` instance.
@@ -191,6 +191,7 @@ export class RubiksCube extends THREE.Object3D {
   }
 
   private onMouseDown(event: MouseEvent) {
+    if (this.initialIntersect || this.isTranforming) return;
     const canvasBounds = this.canvas.getBoundingClientRect();
     this.mouse.x =
       ((event.clientX - canvasBounds.left) / canvasBounds.width) * 2 - 1;
@@ -269,6 +270,7 @@ export class RubiksCube extends THREE.Object3D {
     this.rotationAxis = null;
     this.rotationSection = null;
     this.rotationAngle = null;
+    this.initialIntersect = null;
   }
 
   private onKeyboardRotation(event: KeyboardEvent) {
@@ -321,8 +323,8 @@ export class RubiksCube extends THREE.Object3D {
       onComplete?: () => void | Promise<void>;
     },
   ) {
-    if (this.isRotating) return;
-    this.isRotating = true;
+    if (this.isTranforming || this.initialIntersect) return;
+    this.isTranforming = true;
     const targetAngle = direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
 
     this.animateCubeRotation(axis, targetAngle, options);
@@ -349,7 +351,7 @@ export class RubiksCube extends THREE.Object3D {
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
-        this.isRotating = false;
+        this.isTranforming = false;
         this.rotationAngle = null;
         onComplete && onComplete();
       }
@@ -549,7 +551,8 @@ export class RubiksCube extends THREE.Object3D {
       onComplete?: () => void | Promise<void>;
     },
   ) {
-    if (this.isRotating) return;
+    if (this.isTranforming) return;
+    this.isTranforming = true;
     const { duration, onComplete } = options ?? {};
     const targetAngle = direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
     this.animateSectionRotation(axis, section, targetAngle, {
@@ -588,7 +591,7 @@ export class RubiksCube extends THREE.Object3D {
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
-        this.isRotating = false;
+        this.isTranforming = false;
         this.rotationAngle = null;
         onComplete && onComplete();
       }
@@ -639,6 +642,31 @@ export class RubiksCube extends THREE.Object3D {
     };
 
     shuffleTurn(0);
+  }
+
+  /**
+   * Runs a transformation function on the Rubik's Cube, ensuring that the cube's
+   * transformation state is properly managed.
+   *
+   * This method sets the `isTranforming` flag to `true` before running the
+   * provided transformation function, and resets it to `false` once the
+   * transformation is complete. This helps prevent other transformations or
+   * interactions from occurring while a transformation is in progress.
+   *
+   * @param transformation - A function that performs the transformation. This can
+   *                         be a synchronous function or an asynchronous function
+   *                         returning a promise.
+   * @returns A promise that resolves when the transformation is complete.
+   *
+   * @example
+   * await cube.runTransformation(async () => {
+   *  transform(cube);
+   * });
+   */
+  public async runTransformation(transformation: () => void | Promise<any>) {
+    this.isTranforming = true;
+    await transformation();
+    this.isTranforming = false;
   }
 }
 
