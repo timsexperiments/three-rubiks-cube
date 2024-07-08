@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ADDITION, Brush, Evaluator, SUBTRACTION } from 'three-bvh-csg';
 import { easeInOutCubic } from './transform';
+import { CubeEventListener } from './types';
 
 /**
  * A {@link THREE.Object3D} representation of a 3D Rubik's Cube in Three.js.
@@ -57,6 +58,7 @@ export class RubiksCube extends THREE.Object3D {
   private readonly evaluator: Evaluator;
   private readonly raycaster: THREE.Raycaster;
   private readonly boundingBox: THREE.Mesh;
+  private readonly listener: CubeEventListener;
   private mouse: THREE.Vector2;
   private isDragging: boolean = false;
   private dragStart: { x: number | null; y: number | null } = {
@@ -126,15 +128,24 @@ export class RubiksCube extends THREE.Object3D {
        * Defaults to true.
        */
       useControls?: boolean;
+      /** The object that listens to the cube events. Defaults to the window. */
+      listener?: CubeEventListener;
     },
   ) {
     super();
-    const { evaluator, raycaster, colors, borderColor, useControls } =
-      options ?? {};
+    const {
+      evaluator,
+      raycaster,
+      colors,
+      borderColor,
+      useControls,
+      listener = window,
+    } = options ?? {};
+    this.listener = listener;
     this.evaluator = evaluator ? evaluator : new Evaluator();
     this.raycaster = raycaster ? raycaster : new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
-    this.initCube({ colors, borderColor });
+    this.initCube({ colors, borderColor, useControls });
     this.boundingBox = this.createBoundingBox();
   }
 
@@ -184,13 +195,16 @@ export class RubiksCube extends THREE.Object3D {
   }
 
   private initEventListeners() {
-    window.addEventListener('mousedown', this.onMouseDown.bind(this));
-    window.addEventListener('mousemove', this.onMouseMove.bind(this));
-    window.addEventListener('mouseup', this.onMouseUp.bind(this));
-    window.addEventListener('keydown', this.onKeyboardRotation.bind(this));
+    this.listener.addEventListener('mousedown', this.onMouseDown.bind(this));
+    this.listener.addEventListener('mousemove', this.onMouseMove.bind(this));
+    this.listener.addEventListener('mouseup', this.onMouseUp.bind(this));
+    this.listener.addEventListener(
+      'keydown',
+      this.onKeyboardRotation.bind(this),
+    );
   }
 
-  private onMouseDown(event: MouseEvent) {
+  private onMouseDown(event: { clientX: number; clientY: number }) {
     if (this.initialIntersect || this.isTranforming) return;
     const canvasBounds = this.canvas.getBoundingClientRect();
     this.mouse.x =
@@ -209,7 +223,7 @@ export class RubiksCube extends THREE.Object3D {
     }
   }
 
-  private onMouseMove(event: MouseEvent) {
+  private onMouseMove(event: { clientX: number; clientY: number }) {
     if (!this.isDragging || !this.initialIntersect) return;
 
     const { x: startX, y: startY } = this.dragStart;
@@ -255,7 +269,7 @@ export class RubiksCube extends THREE.Object3D {
     }
   }
 
-  private onMouseUp(_event: MouseEvent) {
+  private onMouseUp() {
     this.isDragging = false;
 
     if (
@@ -273,7 +287,7 @@ export class RubiksCube extends THREE.Object3D {
     this.initialIntersect = null;
   }
 
-  private onKeyboardRotation(event: KeyboardEvent) {
+  private onKeyboardRotation(event: { key: string }) {
     switch (event.key) {
       case 'ArrowUp':
       case 'w':

@@ -1,9 +1,53 @@
 import {
+  CubeEventHandlersEventMap,
+  CubeEventListener,
   explodeAndReassemble,
   RubiksCube,
 } from '@timsexperiments/three-rubiks-cube';
 import { explodeAndReassemble as explodeAndReassembleAsync } from '@timsexperiments/three-rubiks-cube/async';
 import * as THREE from 'three';
+
+class CustomCubeEventListener implements CubeEventListener {
+  private listeners: {
+    [key in keyof CubeEventHandlersEventMap]?: (
+      ev: CubeEventHandlersEventMap[key],
+    ) => any;
+  } = {};
+
+  constructor() {
+    window.addEventListener('keydown', (ev) => {
+      this.dispatchEvent('keydown', ev);
+    });
+    window.addEventListener('mousedown', (ev) => {
+      this.dispatchEvent('mousedown', ev);
+    });
+    window.addEventListener('mousemove', (ev) => {
+      this.dispatchEvent('mousemove', ev);
+    });
+    window.addEventListener('mouseup', () => {
+      this.dispatchEvent('mouseup', undefined);
+    });
+  }
+
+  addEventListener<K extends keyof CubeEventHandlersEventMap>(
+    type: K,
+    listener: (ev: CubeEventHandlersEventMap[K]) => any,
+  ): void {
+    // @ts-ignore
+    this.listeners[type] = listener;
+  }
+
+  // This method is called by the worker to dispatch events
+  dispatchEvent<K extends keyof CubeEventHandlersEventMap>(
+    type: K,
+    ev: CubeEventHandlersEventMap[K],
+  ) {
+    const listener = this.listeners[type];
+    if (listener) {
+      listener(ev);
+    }
+  }
+}
 
 const canvas = document.querySelector<HTMLCanvasElement>('canvas#app');
 
@@ -34,6 +78,7 @@ scene.add(ambientLight);
 
 const cube = new RubiksCube(camera, canvas!, {
   borderColor: 0x000000,
+  listener: new CustomCubeEventListener(),
 });
 scene.add(cube);
 camera.lookAt(cube.position);
