@@ -11,7 +11,7 @@ class CustomCubeEventListener implements CubeEventListener {
     [key in keyof CubeEventHandlersEventMap]?: (
       ev: CubeEventHandlersEventMap[key],
     ) => any;
-  } = {};
+  }[] = [];
 
   constructor() {
     window.addEventListener('keydown', (ev) => {
@@ -33,7 +33,12 @@ class CustomCubeEventListener implements CubeEventListener {
     listener: (ev: CubeEventHandlersEventMap[K]) => any,
   ): void {
     // @ts-ignore
-    this.listeners[type] = listener;
+    if (!this.listeners[type]) {
+      // @ts-ignore
+      this.listeners[type] = [];
+    }
+    // @ts-ignore
+    this.listeners[type].push(listener);
   }
 
   // This method is called by the worker to dispatch events
@@ -41,8 +46,9 @@ class CustomCubeEventListener implements CubeEventListener {
     type: K,
     ev: CubeEventHandlersEventMap[K],
   ) {
-    const listener = this.listeners[type];
-    if (listener) {
+    // @ts-ignore
+    const listeners = this.listeners[type];
+    for (const listener of listeners ?? []) {
       listener(ev);
     }
   }
@@ -126,6 +132,27 @@ canvas.addEventListener('dblclick', () => {
     canvas.requestFullscreen();
   } else {
     document.exitFullscreen();
+  }
+});
+
+window.addEventListener('keydown', (ev) => {
+  switch (ev.key) {
+    case 'h':
+    case 'H':
+      cube.shuffle(10, { duration: 200 });
+      break;
+    case 'r':
+    case 'e':
+      explodeAndReassemble(cube, { range: 15 });
+      break;
+    case 'x':
+    case 'X':
+      cube.disableInteraction();
+      break;
+    case 'c':
+    case 'C':
+      cube.enableInteraction();
+      break;
   }
 });
 

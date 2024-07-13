@@ -35,6 +35,93 @@ type ExplodeOptions = {
  * @param cube - The {@link RubiksCube} instance to be exploded and reassembled.
  * @param options - Optional configuration for the explosion and reassembly.
  *
+<<<<<<< HEAD
+=======
+ * @example
+ * // Example usage
+ * explodeAndReassemble(rubiksCube, {
+ *   duration: 1500,
+ *   range: 15,
+ *   reassembleDelay: 700,
+ *   callback: () => {
+ *     console.log('Cube has been reassembled');
+ *   },
+ * });
+ */
+export function explodeAndReassemble(
+  cube: RubiksCube,
+  options?: ExplodeOptions,
+) {
+  cube.runTransformation(() => {
+    cube.disableInteraction();
+    const clock = new THREE.Clock();
+    const {
+      duration = 1000,
+      range = 10,
+      reassembleDelay = 500,
+      onComplete,
+    } = options ?? {};
+    const originalPositions: THREE.Vector3[] = [];
+    cube.children.forEach((child) => {
+      originalPositions.push(child.position.clone());
+    });
+
+    const randomPositions = generateRandomPositions(cube, { range });
+
+    const animate = async (startTime: number, explode: boolean) => {
+      const elapsedTime = clock.getElapsedTime() - startTime;
+      const progress = Math.min((elapsedTime / duration) * 1000, 1);
+      const easedProgress = easeInOutCubic(progress);
+
+      cube.children.forEach((child, index) => {
+        if (explode) {
+          child.position.lerpVectors(
+            originalPositions[index],
+            randomPositions[index],
+            easedProgress,
+          );
+        } else {
+          child.position.lerpVectors(
+            randomPositions[index],
+            originalPositions[index],
+            easedProgress,
+          );
+        }
+      });
+
+      if (progress < 1) {
+        requestAnimationFrame(() => animate(startTime, explode));
+      } else if (explode) {
+        setTimeout(() => {
+          requestAnimationFrame(() => animate(clock.getElapsedTime(), false));
+        }, reassembleDelay);
+      } else {
+        onComplete && onComplete();
+        cube.enableInteraction();
+      }
+    };
+
+    const perfStartTime = performance.now();
+    requestAnimationFrame(() => animate(clock.getElapsedTime(), true));
+  });
+}
+
+/**
+ * Asynchronously animates the explosion and reassembly of the given
+ * {@link RubiksCube}.
+ *
+ * This function creates a visual effect where the Rubik's Cube pieces explode
+ * outward to random positions and then reassemble back to their original
+ * positions. The animation uses an ease-in-out cubic easing function for smooth
+ * transitions.
+ *
+ * This asynchronous version returns a promise that resolves upon completion of
+ * the reassembly.
+ *
+ * @param cube - The {@link RubiksCube} instance to be exploded and reassembled.
+ * @param options - Optional configuration for the explosion and reassembly.
+ *
+>>>>>>> bab2440 (Add ability to disable and enable user interactions with the cube.)
  * @returns A promise that resolves when the reassembly is complete.
  *
  * @example
@@ -52,10 +139,16 @@ export function explodeAndReassemble(
 ) {
   const { onComplete, ...rest } = options ?? {};
   return new Promise<void>(async (res) => {
+<<<<<<< HEAD
     explodeAndReassembleInternal(cube, {
+=======
+    cube.disableInteraction();
+    explodeAndReassemble(cube, {
+>>>>>>> bab2440 (Add ability to disable and enable user interactions with the cube.)
       ...rest,
       onComplete: async () => {
         onComplete && (await onComplete());
+        cube.enableInteraction();
         res();
       },
     });

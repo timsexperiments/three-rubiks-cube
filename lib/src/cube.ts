@@ -72,6 +72,7 @@ export class RubiksCube extends THREE.Object3D {
   private rotationSection: 0 | 1 | 2 | null = null;
   private rotationAngle: number | null = null;
   private isTranforming: boolean = false;
+  private interactionEnabled: boolean = true;
 
   /**
    * Creates a new `RubiksCube` instance.
@@ -206,6 +207,7 @@ export class RubiksCube extends THREE.Object3D {
   }
 
   private onMouseDown(event: { clientX: number; clientY: number }) {
+    if (!this.interactionEnabled) return;
     if (this.initialIntersect || this.isTranforming) return;
     const canvasBounds = this.canvas.getBoundingClientRect();
     this.mouse.x =
@@ -225,6 +227,7 @@ export class RubiksCube extends THREE.Object3D {
   }
 
   private onMouseMove(event: { clientX: number; clientY: number }) {
+    if (!this.interactionEnabled) return;
     if (!this.isDragging || !this.initialIntersect) return;
 
     const { x: startX, y: startY } = this.dragStart;
@@ -289,6 +292,7 @@ export class RubiksCube extends THREE.Object3D {
   }
 
   private onKeyboardRotation(event: { key: string }) {
+    if (!this.interactionEnabled) return;
     switch (event.key) {
       case 'ArrowUp':
       case 'w':
@@ -338,43 +342,10 @@ export class RubiksCube extends THREE.Object3D {
       onComplete?: () => void | Promise<void>;
     },
   ) {
-    return new Promise<void>((resolve) => {
-      this.tranformationQueue.enqueue(() =>
-        this.rotateCubeInternal(axis, direction, {
-          ...options,
-          onComplete: async () => {
-            options?.onComplete && (await options.onComplete());
-            resolve();
-          },
-        }),
-      );
-    });
-  }
-
-  private rotateCubeInternal(
-    axis: 'x' | 'y',
-    direction: 'clockwise' | 'counterclockwise',
-    options?: {
-      /**
-       * The duration of the rotation animation in milliseconds. Defaults to
-       * 500 milliseconds if not provided.
-       */
-      duration?: number;
-      /**
-       * An optional callback function to be called upon completion of the
-       * rotation.
-       */
-      onComplete?: () => void | Promise<void>;
-    },
-  ) {
-    return new Promise<void>((resolve) => {
-      if (this.isTranforming || this.initialIntersect) {
-        resolve();
-        return;
-      }
-      this.isTranforming = true;
-      const targetAngle =
-        direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
+    this.disableInteraction();
+    if (this.isTranforming || this.initialIntersect) return;
+    this.isTranforming = true;
+    const targetAngle = direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
 
       this.animateCubeRotation(axis, targetAngle, {
         ...options,
@@ -409,6 +380,7 @@ export class RubiksCube extends THREE.Object3D {
       } else {
         this.isTranforming = false;
         this.rotationAngle = null;
+        this.enableInteraction();
         onComplete && onComplete();
       }
     };
@@ -637,39 +609,13 @@ export class RubiksCube extends THREE.Object3D {
       onComplete?: () => void | Promise<void>;
     },
   ) {
-    return this.rotateSlice(axis, section, direction, options);
-  }
-
-  private rotateSliceInternal(
-    axis: 'x' | 'y' | 'z',
-    section: 0 | 1 | 2,
-    direction: 'clockwise' | 'counterclockwise',
-    options?: {
-      /** The duration of the rotation animation in milliseconds. */
-      duration?: number;
-      /**
-       * An optional callback function to be called upon completion of the
-       * rotation.
-       */
-      onComplete?: () => void | Promise<void>;
-    },
-  ) {
-    return new Promise<void>((resolve) => {
-      if (this.isTranforming) {
-        resolve();
-        return;
-      }
-      this.isTranforming = true;
-      const { duration, onComplete } = options ?? {};
-      const targetAngle =
-        direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
-      this.animateSectionRotation(axis, section, targetAngle, {
-        duration,
-        onComplete: () => {
-          onComplete && onComplete();
-          resolve();
-        },
-      });
+    if (this.isTranforming) return;
+    this.isTranforming = true;
+    const { duration, onComplete } = options ?? {};
+    const targetAngle = direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
+    this.animateSectionRotation(axis, section, targetAngle, {
+      duration,
+      onComplete,
     });
   }
 
@@ -705,6 +651,7 @@ export class RubiksCube extends THREE.Object3D {
       } else {
         this.isTranforming = false;
         this.rotationAngle = null;
+        this.enableInteraction();
         onComplete && onComplete();
       }
     };
@@ -753,6 +700,7 @@ export class RubiksCube extends THREE.Object3D {
       onComplete?: () => void | Promise<void>;
     },
   ) {
+    this.disableInteraction();
     const { duration = 200, onComplete } = options ?? {};
     const axes = ['x', 'y', 'z'] as const;
     const sections = [0, 1, 2] as const;
@@ -764,10 +712,18 @@ export class RubiksCube extends THREE.Object3D {
       const direction =
         directions[Math.floor(Math.random() * directions.length)];
 
-      this.rotateSlice(axis, section, direction, { duration });
-    }
+        this.rotate(axis, section, direction, {
+          duration,
+          onComplete: () => {
+            shuffleTurn(currentTurn + 1);
+          },
+        });
+      } else {
+        onComplete && onComplete();
+      }
+    };
 
-    onComplete && (await onComplete());
+    shuffleTurn(0);
   }
 
   /**
@@ -795,6 +751,16 @@ export class RubiksCube extends THREE.Object3D {
       await transformation();
       this.isTranforming = false;
     });
+  }
+
+  /** Enables keyboard and mouse interactions with the cube. */
+  public enableInteraction() {
+    this.interactionEnabled = true;
+  }
+
+  /** Disables keyboard and mouse interactions with the cube. */
+  public disableInteraction() {
+    this.interactionEnabled = false;
   }
 }
 
