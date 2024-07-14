@@ -55,6 +55,7 @@ import { CubeEventListener } from './types';
  * });
  */
 export class RubiksCube extends THREE.Object3D {
+  private readonly tranformationQueue: EventQueue = new EventQueue();
   private readonly evaluator: Evaluator;
   private readonly raycaster: THREE.Raycaster;
   private readonly boundingBox: THREE.Mesh;
@@ -123,7 +124,7 @@ export class RubiksCube extends THREE.Object3D {
        * Whether to set up the controls on the cube.
        *
        * If false, the controls can be set up manually using the
-       * {@link RubiksCube.rotate} and {@link RubiksCube.rotateCube} methods.
+       * {@link RubiksCube.rotateSliceInternal} and {@link RubiksCube.rotateCubeInternal} methods.
        *
        * Defaults to true.
        */
@@ -337,11 +338,52 @@ export class RubiksCube extends THREE.Object3D {
       onComplete?: () => void | Promise<void>;
     },
   ) {
-    if (this.isTranforming || this.initialIntersect) return;
-    this.isTranforming = true;
-    const targetAngle = direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
+    return new Promise<void>((resolve) => {
+      this.tranformationQueue.enqueue(() =>
+        this.rotateCubeInternal(axis, direction, {
+          ...options,
+          onComplete: async () => {
+            options?.onComplete && (await options.onComplete());
+            resolve();
+          },
+        }),
+      );
+    });
+  }
 
-    this.animateCubeRotation(axis, targetAngle, options);
+  private rotateCubeInternal(
+    axis: 'x' | 'y',
+    direction: 'clockwise' | 'counterclockwise',
+    options?: {
+      /**
+       * The duration of the rotation animation in milliseconds. Defaults to
+       * 500 milliseconds if not provided.
+       */
+      duration?: number;
+      /**
+       * An optional callback function to be called upon completion of the
+       * rotation.
+       */
+      onComplete?: () => void | Promise<void>;
+    },
+  ) {
+    return new Promise<void>((resolve) => {
+      if (this.isTranforming || this.initialIntersect) {
+        resolve();
+        return;
+      }
+      this.isTranforming = true;
+      const targetAngle =
+        direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
+
+      this.animateCubeRotation(axis, targetAngle, {
+        ...options,
+        onComplete: () => {
+          options?.onComplete && options.onComplete();
+          resolve();
+        },
+      });
+    });
   }
 
   private animateCubeRotation(
@@ -551,13 +593,13 @@ export class RubiksCube extends THREE.Object3D {
    *                    `'counterclockwise'`).
    * @param options - Additional options for the rotation animation.
    */
-  public rotate(
+  public rotateSlice(
     axis: 'x' | 'y' | 'z',
     section: 0 | 1 | 2,
     direction: 'clockwise' | 'counterclockwise',
     options?: {
       /** The duration of the rotation animation in milliseconds. */
-      duration: number;
+      duration?: number;
       /**
        * An optional callback function to be called upon completion of the
        * rotation.
@@ -565,13 +607,69 @@ export class RubiksCube extends THREE.Object3D {
       onComplete?: () => void | Promise<void>;
     },
   ) {
-    if (this.isTranforming) return;
-    this.isTranforming = true;
-    const { duration, onComplete } = options ?? {};
-    const targetAngle = direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
-    this.animateSectionRotation(axis, section, targetAngle, {
-      duration,
-      onComplete,
+    return new Promise<void>((resolve) => {
+      this.tranformationQueue.enqueue(
+        async () =>
+          await this.rotateSliceInternal(axis, section, direction, {
+            onComplete: async () => {
+              options?.onComplete && (await options.onComplete());
+              resolve();
+            },
+          }),
+      );
+    });
+  }
+
+  /**
+   * @deprecated This method is deprecated and will be removed in a future version. Use {@link RubiksCube.rotateSlice} instead.
+   */
+  public rotate(
+    axis: 'x' | 'y' | 'z',
+    section: 0 | 1 | 2,
+    direction: 'clockwise' | 'counterclockwise',
+    options?: {
+      /** The duration of the rotation animation in milliseconds. */
+      duration?: number;
+      /**
+       * An optional callback function to be called upon completion of the
+       * rotation.
+       */
+      onComplete?: () => void | Promise<void>;
+    },
+  ) {
+    return this.rotateSlice(axis, section, direction, options);
+  }
+
+  private rotateSliceInternal(
+    axis: 'x' | 'y' | 'z',
+    section: 0 | 1 | 2,
+    direction: 'clockwise' | 'counterclockwise',
+    options?: {
+      /** The duration of the rotation animation in milliseconds. */
+      duration?: number;
+      /**
+       * An optional callback function to be called upon completion of the
+       * rotation.
+       */
+      onComplete?: () => void | Promise<void>;
+    },
+  ) {
+    return new Promise<void>((resolve) => {
+      if (this.isTranforming) {
+        resolve();
+        return;
+      }
+      this.isTranforming = true;
+      const { duration, onComplete } = options ?? {};
+      const targetAngle =
+        direction === 'clockwise' ? Math.PI / 2 : -Math.PI / 2;
+      this.animateSectionRotation(axis, section, targetAngle, {
+        duration,
+        onComplete: () => {
+          onComplete && onComplete();
+          resolve();
+        },
+      });
     });
   }
 
@@ -632,30 +730,44 @@ export class RubiksCube extends THREE.Object3D {
       onComplete?: () => void | Promise<void>;
     },
   ) {
+    return new Promise<void>((resolve) => {
+      this.shuffleInternal(turns, {
+        ...options,
+        onComplete: async () => {
+          options?.onComplete && (await options.onComplete());
+          resolve();
+        },
+      });
+    });
+  }
+
+  private async shuffleInternal(
+    turns: number = 25,
+    options?: {
+      /** The duration of each turn animation in milliseconds. */
+      duration?: number;
+      /**
+       * An optional callback function to be called upon completion of the
+       * shuffle.
+       */
+      onComplete?: () => void | Promise<void>;
+    },
+  ) {
     const { duration = 200, onComplete } = options ?? {};
     const axes = ['x', 'y', 'z'] as const;
     const sections = [0, 1, 2] as const;
     const directions = ['clockwise', 'counterclockwise'] as const;
 
-    const shuffleTurn = async (currentTurn: number) => {
-      if (currentTurn < turns) {
-        const axis = axes[Math.floor(Math.random() * axes.length)];
-        const section = sections[Math.floor(Math.random() * sections.length)];
-        const direction =
-          directions[Math.floor(Math.random() * directions.length)];
+    for (let i = 0; i < turns; i++) {
+      const axis = axes[Math.floor(Math.random() * axes.length)];
+      const section = sections[Math.floor(Math.random() * sections.length)];
+      const direction =
+        directions[Math.floor(Math.random() * directions.length)];
 
-        this.rotate(axis, section, direction, {
-          duration,
-          onComplete: () => {
-            shuffleTurn(currentTurn + 1);
-          },
-        });
-      } else {
-        onComplete && onComplete();
-      }
-    };
+      this.rotateSlice(axis, section, direction, { duration });
+    }
 
-    shuffleTurn(0);
+    onComplete && (await onComplete());
   }
 
   /**
@@ -678,9 +790,11 @@ export class RubiksCube extends THREE.Object3D {
    * });
    */
   public async runTransformation(transformation: () => void | Promise<any>) {
-    this.isTranforming = true;
-    await transformation();
-    this.isTranforming = false;
+    this.tranformationQueue.enqueue(async () => {
+      this.isTranforming = true;
+      await transformation();
+      this.isTranforming = false;
+    });
   }
 }
 
@@ -801,4 +915,25 @@ function nearestClampDistance(
   }
 
   return nearest - angle;
+}
+
+class EventQueue {
+  private queue: (() => Promise<void>)[] = [];
+  private processing = false;
+
+  public enqueue(event: () => Promise<void>) {
+    this.queue.push(event);
+    this.processNext();
+  }
+
+  private async processNext() {
+    if (this.processing || this.queue.length === 0) return;
+
+    this.processing = true;
+    const event = this.queue.shift();
+    if (event) await event();
+    this.processing = false;
+
+    this.processNext();
+  }
 }

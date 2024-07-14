@@ -1,6 +1,6 @@
 {
   "name": "@timsexperiments/three-rubiks-cube",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "description": "API for a Three JS Rubik's Cube implemented as an THREE.Object3D.",
   "main": "dist/esm/index.js",
   "exports": {

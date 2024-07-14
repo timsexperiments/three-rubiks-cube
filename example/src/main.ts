@@ -4,7 +4,6 @@ import {
   explodeAndReassemble,
   RubiksCube,
 } from '@timsexperiments/three-rubiks-cube';
-import { explodeAndReassemble as explodeAndReassembleAsync } from '@timsexperiments/three-rubiks-cube/async';
 import * as THREE from 'three';
 
 class CustomCubeEventListener implements CubeEventListener {
@@ -85,10 +84,28 @@ camera.lookAt(cube.position);
 cube.shuffle(10, {
   duration: 200,
   onComplete: async () => {
-    await explodeAndReassembleAsync(cube, { range: 15 });
-    explodeAndReassemble(cube, { range: 15 });
+    await explodeAndReassemble(cube, { range: 15 });
+    explodeAndReassemble(cube, { range: 15 }).then(() => {
+      cube.rotateSlice('x', 0, 'clockwise', { duration: 300 });
+    });
   },
 });
+
+// Add some rotations to the cube queue.
+cube.rotateCube('x', 'clockwise', { duration: 300 });
+cube.rotateCube('x', 'counterclockwise', { duration: 300 });
+cube.rotateCube('x', 'clockwise', { duration: 300 });
+cube.rotateCube('y', 'counterclockwise', { duration: 300 });
+cube.rotateCube('y', 'clockwise', { duration: 300 });
+cube.rotateCube('x', 'clockwise', { duration: 300 });
+cube.rotateCube('y', 'counterclockwise', { duration: 300 });
+cube.rotateCube('x', 'clockwise', { duration: 300 });
+cube.rotateCube('y', 'counterclockwise', { duration: 300 });
+cube.rotateCube('y', 'clockwise', { duration: 300 });
+cube.rotateCube('y', 'counterclockwise', { duration: 300 });
+cube.rotateCube('x', 'clockwise', { duration: 300 });
+cube.rotateCube('x', 'clockwise', { duration: 300 });
+cube.rotateCube('x', 'counterclockwise', { duration: 300 });
 
 const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.setSize(sizes.width, sizes.height);
