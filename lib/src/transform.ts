@@ -35,93 +35,10 @@ type ExplodeOptions = {
  * @param cube - The {@link RubiksCube} instance to be exploded and reassembled.
  * @param options - Optional configuration for the explosion and reassembly.
  *
- * @example
- * // Example usage
- * explodeAndReassemble(rubiksCube, {
- *   duration: 1500,
- *   range: 15,
- *   reassembleDelay: 700,
- *   callback: () => {
- *     console.log('Cube has been reassembled');
- *   },
- * });
- */
-export function explodeAndReassemble(
-  cube: RubiksCube,
-  options?: ExplodeOptions,
-) {
-  cube.runTransformation(() => {
-    const clock = new THREE.Clock();
-    const {
-      duration = 1000,
-      range = 10,
-      reassembleDelay = 500,
-      onComplete,
-    } = options ?? {};
-    const originalPositions: THREE.Vector3[] = [];
-    cube.children.forEach((child) => {
-      originalPositions.push(child.position.clone());
-    });
-
-    const randomPositions = generateRandomPositions(cube, { range });
-
-    const animate = async (startTime: number, explode: boolean) => {
-      const elapsedTime = clock.getElapsedTime() - startTime;
-      const progress = Math.min((elapsedTime / duration) * 1000, 1);
-      const easedProgress = easeInOutCubic(progress);
-
-      cube.children.forEach((child, index) => {
-        if (explode) {
-          child.position.lerpVectors(
-            originalPositions[index],
-            randomPositions[index],
-            easedProgress,
-          );
-        } else {
-          child.position.lerpVectors(
-            randomPositions[index],
-            originalPositions[index],
-            easedProgress,
-          );
-        }
-      });
-
-      if (progress < 1) {
-        requestAnimationFrame(() => animate(startTime, explode));
-      } else if (explode) {
-        setTimeout(() => {
-          requestAnimationFrame(() => animate(clock.getElapsedTime(), false));
-        }, reassembleDelay);
-      } else {
-        onComplete && onComplete();
-      }
-    };
-
-    const perfStartTime = performance.now();
-    requestAnimationFrame(() => animate(clock.getElapsedTime(), true));
-  });
-}
-
-/**
- * Asynchronously animates the explosion and reassembly of the given
- * {@link RubiksCube}.
- *
- * This function creates a visual effect where the Rubik's Cube pieces explode
- * outward to random positions and then reassemble back to their original
- * positions. The animation uses an ease-in-out cubic easing function for smooth
- * transitions.
- *
- * This asynchronous version returns a promise that resolves upon completion of
- * the reassembly.
- *
- * @param cube - The {@link RubiksCube} instance to be exploded and reassembled.
- * @param options - Optional configuration for the explosion and reassembly.
- *
  * @returns A promise that resolves when the reassembly is complete.
  *
  * @example
- * // Example usage
- * explodeAndReassembleAsync(rubiksCube, {
+ * explodeAndReassemble(rubiksCube, {
  *   duration: 1500,
  *   range: 15,
  *   reassembleDelay: 700,
@@ -129,13 +46,13 @@ export function explodeAndReassemble(
  *   console.log('Cube has been reassembled');
  * });
  */
-export function explodeAndReassembleAsync(
+export function explodeAndReassemble(
   cube: RubiksCube,
   options?: ExplodeOptions,
 ) {
   const { onComplete, ...rest } = options ?? {};
   return new Promise<void>(async (res) => {
-    explodeAndReassemble(cube, {
+    explodeAndReassembleInternal(cube, {
       ...rest,
       onComplete: async () => {
         onComplete && (await onComplete());
@@ -143,6 +60,68 @@ export function explodeAndReassembleAsync(
       },
     });
   });
+}
+
+function explodeAndReassembleInternal(
+  cube: RubiksCube,
+  options?: ExplodeOptions,
+) {
+  cube.runTransformation(
+    () =>
+      new Promise<void>(async (res) => {
+        const clock = new THREE.Clock();
+        const {
+          duration = 1000,
+          range = 10,
+          reassembleDelay = 500,
+          onComplete,
+        } = options ?? {};
+        const originalPositions: THREE.Vector3[] = [];
+        cube.children.forEach((child) => {
+          originalPositions.push(child.position.clone());
+        });
+
+        const randomPositions = generateRandomPositions(cube, { range });
+
+        const animate = async (startTime: number, explode: boolean) => {
+          const elapsedTime = clock.getElapsedTime() - startTime;
+          const progress = Math.min((elapsedTime / duration) * 1000, 1);
+          const easedProgress = easeInOutCubic(progress);
+
+          cube.children.forEach((child, index) => {
+            if (explode) {
+              child.position.lerpVectors(
+                originalPositions[index],
+                randomPositions[index],
+                easedProgress,
+              );
+            } else {
+              child.position.lerpVectors(
+                randomPositions[index],
+                originalPositions[index],
+                easedProgress,
+              );
+            }
+          });
+
+          if (progress < 1) {
+            requestAnimationFrame(() => animate(startTime, explode));
+          } else if (explode) {
+            setTimeout(() => {
+              requestAnimationFrame(() =>
+                animate(clock.getElapsedTime(), false),
+              );
+            }, reassembleDelay);
+          } else {
+            onComplete && (await onComplete());
+            res();
+          }
+        };
+
+        const perfStartTime = performance.now();
+        requestAnimationFrame(() => animate(clock.getElapsedTime(), true));
+      }),
+  );
 }
 
 function generateRandomPositions(
@@ -172,7 +151,6 @@ function generateRandomPositions(
  * @returns The eased value, also in the range [0, 1].
  *
  * @example
- * // Example usage
  * const easedValue = easeInOutCubic(0.3);
  * console.log(easedValue); // Output will be a smoothly interpolated value based on the input
  */
