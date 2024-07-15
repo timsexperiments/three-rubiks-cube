@@ -611,6 +611,7 @@ export class RubiksCube extends THREE.Object3D {
       this.tranformationQueue.enqueue(
         async () =>
           await this.rotateSliceInternal(axis, section, direction, {
+            ...options,
             onComplete: async () => {
               options?.onComplete && (await options.onComplete());
               resolve();
