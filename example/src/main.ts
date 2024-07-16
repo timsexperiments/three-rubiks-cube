@@ -87,6 +87,12 @@ cube.shuffle(10, {
     await explodeAndReassemble(cube, { range: 15 });
     explodeAndReassemble(cube, { range: 15 }).then(() => {
       cube.rotateSlice('x', 0, 'clockwise', { duration: 300 });
+      cube.disableControls();
+      console.log('Controls disabled');
+      setTimeout(() => {
+        cube.enableControls();
+        console.log('Controls enabled');
+      }, 5000);
     });
   },
 });
