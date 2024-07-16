@@ -72,6 +72,7 @@ export class RubiksCube extends THREE.Object3D {
   private rotationSection: 0 | 1 | 2 | null = null;
   private rotationAngle: number | null = null;
   private isTranforming: boolean = false;
+  private controlsEnabled: boolean = true;
 
   /**
    * Creates a new `RubiksCube` instance.
@@ -206,6 +207,7 @@ export class RubiksCube extends THREE.Object3D {
   }
 
   private onMouseDown(event: { clientX: number; clientY: number }) {
+    if (!this.controlsEnabled) return;
     if (this.initialIntersect || this.isTranforming) return;
     const canvasBounds = this.canvas.getBoundingClientRect();
     this.mouse.x =
@@ -225,6 +227,7 @@ export class RubiksCube extends THREE.Object3D {
   }
 
   private onMouseMove(event: { clientX: number; clientY: number }) {
+    if (!this.controlsEnabled) return;
     if (!this.isDragging || !this.initialIntersect) return;
 
     const { x: startX, y: startY } = this.dragStart;
@@ -289,6 +292,7 @@ export class RubiksCube extends THREE.Object3D {
   }
 
   private onKeyboardRotation(event: { key: string }) {
+    if (!this.controlsEnabled) return;
     switch (event.key) {
       case 'ArrowUp':
       case 'w':
@@ -796,6 +800,16 @@ export class RubiksCube extends THREE.Object3D {
       await transformation();
       this.isTranforming = false;
     });
+  }
+
+  /** Enables event controls. */
+  public enableControls() {
+    this.controlsEnabled = true;
+  }
+
+  /** Disables event controls. */
+  public disableControls() {
+    this.controlsEnabled = false;
   }
 }
 
